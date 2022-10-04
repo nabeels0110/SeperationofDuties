@@ -1,0 +1,41 @@
+import "tfplan/v2" as tfplan
+import "strings"
+###############################################################################################################
+
+google_organization_iam_binding = filter tfplan.resource_changes as _, resource_changes {
+    resource_changes.type is "google_organization_iam_binding" and
+        resource_changes.mode is "managed" and // line 11
+        (resource_changes.change.actions contains "create" or //line 110
+            resource_changes.change.actions is ["update"] or resource_changes.change.actions is ["no-op"])
+}
+
+google_org_policy_global_enforcement1 = rule when google_organization_iam_binding is not empty {
+        all google_organization_iam_binding as _, instances {
+                instances.change.after.role not contains "roles/iam.serviceAccountAdmin" and instances.change.after.role not contains "roles/iam.serviceAccountUser" //line 125
+            }
+}
+
+###############################################################################################################
+
+google_organization_iam_member = filter tfplan.resource_changes as _, resource_changes {
+    resource_changes.type is "google_organization_iam_member" and
+        resource_changes.mode is "managed" and // line 11
+        (resource_changes.change.actions contains "create" or //line 110
+            resource_changes.change.actions is ["update"] or resource_changes.change.actions is ["no-op"])
+}
+
+
+google_org_policy_global_enforcement2 = rule when google_organization_iam_member is not empty {
+        all google_organization_iam_member as _, instances {
+                instances.change.after.role not contains "roles/iam.serviceAccountAdmin" and instances.change.after.role not contains "roles/iam.serviceAccountUser"  //line 125
+            }
+}
+
+###############################################################################################################
+
+###############################################################################################################
+
+main = rule {
+  google_org_policy_global_enforcement1 and
+  google_org_policy_global_enforcement2 //and
+}
